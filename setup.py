@@ -11,11 +11,11 @@ setup(
     packages=['AutoClean'],
     zip_safe=False,
     install_requires=[
-        'py-AutoClean',
         'ujson',
         'datawig==0.2.0',
         'numpy==1.21.6',
         'pandas==1.3.0',
+        'py-AutoClean',
         'torch'
     ]
 )
