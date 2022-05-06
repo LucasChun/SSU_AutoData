@@ -15,6 +15,7 @@ setup(
         'numpy==1.21.6',
         'pandas==1.3.0',
         'py-AutoClean',
+        'datawig==0.1.10',
         'torch'
     ]
 )
