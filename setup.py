@@ -15,5 +15,6 @@ setup(
         'py-AutoClean',
         'datawig==0.2.0',
         'torch'
+        'pandas>=1.3.0'
     ]
 )
