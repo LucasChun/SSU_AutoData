@@ -13,7 +13,7 @@ setup(
     install_requires=[
         'ujson',
         'py-AutoClean',
-        'datawig==0.1.10',
+        'datawig==0.2.0',
         'torch'
     ]
 )
