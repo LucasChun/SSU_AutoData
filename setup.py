@@ -14,6 +14,7 @@ setup(
         'ujson',
         'py-AutoClean',
         'datawig==0.2.0',
-        'torch'
+        'torch',
+        'scipy==1.5.4'
     ]
 )
