@@ -14,8 +14,8 @@ setup(
         'py-AutoClean',
         'ujson',
         'datawig',
-        'torch',
         'numpy==1.21.6',
-        'pandas==1.3.0'
+        'pandas==1.3.0',
+        'torch'
     ]
 )
