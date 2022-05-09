@@ -8,7 +8,7 @@ setup(
     author='chunhyeonu',
     author_email='hyeonu.chun@gmail.com',
     license='hyeonu',
-    packages=['AutoClean'],
+    packages=['AutoClean', 'datawig'],
     zip_safe=False,
     install_requires=[
         'loguru',
