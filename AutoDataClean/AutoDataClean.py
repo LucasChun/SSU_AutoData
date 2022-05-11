@@ -2,9 +2,9 @@ import os
 import sys
 import pandas as pd
 from loguru import logger
-from AutoClean.Modules import *
+from AutoDataClean.Modules import *
 
-class AutoClean:
+class AutoDataClean:
 
     def __init__(self, input_data, missing_num='auto', missing_categ='auto', encode_categ=['auto'], extract_datetime='s', outliers='winz', outlier_param=1.5, logfile=True, verbose=False, adjust_timecycle=True, time_series=False):
         '''
@@ -40,9 +40,9 @@ class AutoClean:
                                         'False' = skips this step
         outlier_param (int, float)......! recommended not to change default value
                                         define the multiplier for the outlier bounds
-        logfile (bool)..................define whether to create a logile during the AutoClean process
+        logfile (bool)..................define whether to create a logile during the AutoDataClean process
                                         logfile will be saved in working directory as "autoclean.log"
-        verbose (bool)..................define whether AutoClean logs will be printed in console
+        verbose (bool)..................define whether AutoDataClean logs will be printed in console
         
         OUTPUT (dataframe)..............a cleaned Pandas dataframe, accessible through the 'output_data' instance
         '''    
@@ -82,9 +82,9 @@ class AutoClean:
         
         if type(df) != pd.core.frame.DataFrame:
             raise ValueError('Invalid value for "df" parameter.')
-        if self.missing_num not in [False, 'interp','datawig','brits','auto', 'knn', 'mean', 'median', 'most_frequent', 'delete']:
+        if self.missing_num not in [False, 'auto', 'linreg+knn', 'svr+knn', 'mean', 'median', 'most_frequent', 'delete', 'interp','naomi','brits']:
             raise ValueError('Invalid value for "missing_num" parameter.')
-        if self.missing_categ not in [False, 'auto', 'knn', 'most_frequent', 'delete']:
+        if self.missing_categ not in [False, 'auto', 'most_frequent', 'delete']:
             raise ValueError('Invalid value for "missing_categ" parameter.')
         if self.outliers not in [False, 'winz', 'delete']:
             raise ValueError('Invalid value for "outliers" parameter.')
@@ -114,5 +114,5 @@ class AutoClean:
         df = Adjust.convert_datetime(self, df) 
         df = EncodeCateg.handle(self, df)
         df = Adjust.round_values(self, df, input_data)
-        logger.info('AutoClean completed successfully')
+        logger.info('AutoDataClean completed successfully')
         return df

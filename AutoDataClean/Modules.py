@@ -9,16 +9,17 @@ from sklearn import preprocessing
 from sklearn.impute import KNNImputer, SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVR
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from loguru import logger
-from AutoClean.BRITS import init
+from AutoDataClean.BRITS import initBRITS
+from AutoDataClean.NAOMI import initNAOMI
 import warnings
-import datawig
 warnings.filterwarnings('ignore')
 
 '''
-Modules are used by the AutoClean pipeline for data cleaning and preprocessing.
+Modules are used by the AutoDataClean pipeline for data cleaning and preprocessing.
 '''
 
 class MissingValues:
@@ -38,53 +39,109 @@ class MissingValues:
                 logger.info('Started handling of NUMERICAL missing values... Method: "{}"', self.missing_num.upper())
                 self.time_series = Adjust.verify_ts(df)
                 MissingValueRate = df.isna().sum().sum() / df.size * 100
+                # None Time Series
                 if self.time_series == False:
-                    if MissingValueRate < 10:
-                        # mean, median or mode imputation
-                        self.missing_num = 'mean' #'mean', 'median', 'most_frequent'
-                        imputer = SimpleImputer(strategy=self.missing_num)
-                        df = MissingValues._impute(self, df, imputer, type='num')
-                    elif 10 <= MissingValueRate < 20:
-                        # linear regression imputation
-                        self.missing_num = 'linreg'
+                    if self.missing_num in ['interp', 'brits', 'naomi']:
+                        raise ValueError('Invalid value for "missing_num" parameter for NONE-TIME SERIES type.')
+                    # Automatic imputation
+                    if self.missing_num == 'auto':
+                        if MissingValueRate < 10:
+                            self.missing_num = 'mean' #'mean', 'median', 'most_frequent'
+                            imputer = SimpleImputer(strategy=self.missing_num)
+                            df = MissingValues._impute(self, df, imputer, type='num')
+                        elif 10 <= MissingValueRate < 20:
+                            lr = LinearRegression()
+                            df = MissingValues._lin_regression_impute(self, df, lr)
+                            self.missing_num = 'knn'
+                            imputer = KNNImputer(n_neighbors=_n_neighbors)
+                            df = MissingValues._impute(self, df, imputer, type='num')
+                            self.missing_num = 'linreg+knn_model'
+                        elif MissingValueRate >= 20:
+                            lr = SVR()
+                            df = MissingValues._lin_regression_impute(self, df, lr)
+                            self.missing_num = 'knn'
+                            imputer = KNNImputer(n_neighbors=_n_neighbors)
+                            df = MissingValues._impute(self, df, imputer, type='num')
+                            self.missing_num = 'svr+knn_model'
+                    # linear + knn regression imputation
+                    elif self.missing_num == 'linreg+knn':
                         lr = LinearRegression()
                         df = MissingValues._lin_regression_impute(self, df, lr)
-                    elif MissingValueRate >= 20:
-                        # knn imputation
                         self.missing_num = 'knn'
                         imputer = KNNImputer(n_neighbors=_n_neighbors)
                         df = MissingValues._impute(self, df, imputer, type='num')
+                        self.missing_num = 'linreg+knn_model'
+                    # SVR + knn regression imputation
+                    elif self.missing_num == 'svr+knn':
+                        lr = SVR()
+                        df = MissingValues._lin_regression_impute(self, df, lr)
+                        self.missing_num = 'knn'
+                        imputer = KNNImputer(n_neighbors=_n_neighbors)
+                        df = MissingValues._impute(self, df, imputer, type='num')
+                        self.missing_num = 'svr+knn_model'
+                    # mean, median or mode imputation
+                    elif self.missing_num in ['mean', 'median', 'most_frequent']:
+                        imputer = SimpleImputer(strategy=self.missing_num)
+                        df = MissingValues._impute(self, df, imputer, type='num')
+                    # delete missing values
+                    elif self.missing_num == 'delete':
+                        df = MissingValues._delete(self, df, type='num')
+                        logger.debug('Deletion of {} NUMERIC missing value(s) succeeded', self.count_missing - df.isna().sum().sum())
+
+                # Time Series
                 else:
-                    if MissingValueRate < 10:
-                        # Interpolate missing values
-                        self.missing_num = 'interp'
+                    if self.missing_num in ['linreg+knn', 'svr+knn', 'mean', 'median', 'most_frequent']:
+                        raise ValueError('Invalid value for "missing_num" parameter for TIME SERIES type.')
+                    # Automatic imputation
+                    if self.missing_num == 'auto':
+                        if MissingValueRate < 10:
+                            self.missing_num = 'interp_model'
+                            df = MissingValues._interpolate(self, df, self.time_series)
+                        elif 10 <= MissingValueRate < 20:
+                            self.missing_num = 'brits_model'
+                            df = MissingValues._brits(self, df, self.time_series)
+                        elif MissingValueRate >= 20:
+                            self.missing_num = 'naomi_model'
+                            df = MissingValues._naomi(self, df, self.time_series)
+                    # Interpolate
+                    elif self.missing_num == 'interp':
+                        self.missing_num = 'interp_model'
                         df = MissingValues._interpolate(self, df, self.time_series)
-                    elif 10 <= MissingValueRate < 20:
-                        # BRITS
-                        self.missing_num = 'brits'
+                    # BRITS imputation
+                    elif self.missing_num == 'brits':
+                        self.missing_num = 'brits_model'
                         df = MissingValues._brits(self, df, self.time_series)
-                    elif MissingValueRate >= 20:
-                        # Datawig
-                        self.missing_num = 'datawig'
-                        df = MissingValues._datawig(self, df, self.time_series)
+                    # NAOMI imputation
+                    elif self.missing_num == 'naomi':
+                        self.missing_num = 'naomi_model'
+                        df = MissingValues._naomi(self, df, self.time_series)
+                    # delete missing values
+                    elif self.missing_num == 'delete':
+                        df = MissingValues._delete(self, df, type='num')
+                        logger.debug('Deletion of {} NUMERIC missing value(s) succeeded', self.count_missing - df.isna().sum().sum())
+
+                logger.debug('"{}" of [TIME-SERIES:{}] {} NUMERIC missing value(s) succeeded', self.missing_num.upper(), bool(self.time_series) ,self.count_missing - df.isna().sum().sum())
 
             if self.missing_categ: # categorical data
                 logger.info('Started handling of CATEGORICAL missing values... Method: "{}"', self.missing_categ.upper())
                 # automated handling
                 if self.missing_categ == 'auto':
-                    self.missing_categ = 'logreg'
                     lr = LogisticRegression()
                     df = MissingValues._log_regression_impute(self, df, lr)
                     self.missing_categ = 'knn'
                     imputer = KNNImputer(n_neighbors=_n_neighbors)
                     df = MissingValues._impute(self, df, imputer, type='categ')
-                elif self.missing_categ == 'logreg':
-                    lr = LogisticRegression()
-                    df = MissingValues._log_regression_impute(self, df, lr)
-                # knn imputation
-                elif self.missing_categ == 'knn':
-                    imputer = KNNImputer(n_neighbors=_n_neighbors)
+                    self.missing_categ = 'logreg+knn'
+                # mode imputation
+                elif self.missing_categ == 'most_frequent':
+                    imputer = SimpleImputer(strategy=self.missing_categ)
                     df = MissingValues._impute(self, df, imputer, type='categ')
+                # delete missing values
+                elif self.missing_categ == 'delete':
+                    df = MissingValues._delete(self, df, type='categ')
+                    logger.debug('Deletion of {} CATEGORICAL missing value(s) succeeded', self.count_missing-df.isna().sum().sum())
+                logger.debug('"{}" of {} CATEGORICAL missing value(s) succeeded', self.missing_categ.upper(),
+                             self.count_missing - df.isna().sum().sum())
         else:
             logger.debug('{} missing values found', self.count_missing)
         end = timer()
@@ -213,28 +270,21 @@ class MissingValues:
         cols_num = df.select_dtypes(include=np.number).columns
         for feature in cols_num:
             try:
-                df[feature] = init(pd.DataFrame(df[feature].values, index=df[time], columns=[feature]), feature)
+                df[feature] = initBRITS(pd.DataFrame(df[feature].values, index=df[time], columns=[feature]), feature)
                 #logger.debug('LINREG imputation of {} value(s) succeeded for feature "{}"', len(pred), feature)
             except:
                 logger.warning('LINREG imputation failed for feature "{}"', feature)
         return df
 
-    def _datawig(self, df, time):
+    def _naomi(self, df, time):
         if time == False:
             print('Its not Time Serise')
             return df
         # function for predicting missing values with linear regression
         cols_num = df.select_dtypes(include=np.number).columns
-        #print(cols_num)
         for feature in cols_num:
             try:
-                imputer = datawig.SimpleImputer(input_columns=[time], output_column=feature, output_path="datawig")
-                df[time] = df[time].astype(str)
-                imputer.fit(train_df=df, num_epochs=30)
-                df_null_only = df[df[feature].isnull()]
-                np_imputed = imputer.predict(df_null_only)
-                new_df = pd.DataFrame({feature: np_imputed[feature + '_imputed'].round().values}, index=np_imputed.index)
-                df.update(new_df)
+                df[feature] = initNAOMI(pd.DataFrame(df[feature].values, index=df[time], columns=[feature]), feature)
                 #logger.debug('LINREG imputation of {} value(s) succeeded for feature "{}"', len(pred), feature)
             except:
                 logger.warning('LINREG imputation failed for feature "{}"', feature)
@@ -398,48 +448,49 @@ class Adjust:
         if self.extract_datetime:
             logger.info('Started conversion of DATETIME features... Granularity: {}', self.extract_datetime)
             start = timer()
-            cols = set(df.columns) ^ set(df.select_dtypes(include=np.number).columns) 
-            for feature in cols: 
-                try:
+            #cols = set(df.columns) ^ set(df.select_dtypes(include=np.number).columns)
+            #for feature in cols:
+            feature = self.time_series
+            try:
                     # convert features encoded as strings to type datetime ['D','M','Y','h','m','s']
-                    df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
-                    try:
-                        df['Day'] = pd.to_datetime(df[feature]).dt.day
+                df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
+                try:
+                    df['Day'] = pd.to_datetime(df[feature]).dt.day
 
-                        if self.extract_datetime in ['M','Y','h','m','s']:
-                            df['Month'] = pd.to_datetime(df[feature]).dt.month
+                    if self.extract_datetime in ['M','Y','h','m','s']:
+                        df['Month'] = pd.to_datetime(df[feature]).dt.month
 
-                            if self.extract_datetime in ['Y','h','m','s']:
-                                df['Year'] = pd.to_datetime(df[feature]).dt.year
+                        if self.extract_datetime in ['Y','h','m','s']:
+                            df['Year'] = pd.to_datetime(df[feature]).dt.year
 
-                                if self.extract_datetime in ['h','m','s']:
-                                    df['Hour'] = pd.to_datetime(df[feature]).dt.hour
+                            if self.extract_datetime in ['h','m','s']:
+                                df['Hour'] = pd.to_datetime(df[feature]).dt.hour
 
-                                    if self.extract_datetime in ['m','s']:
-                                        df['Minute'] = pd.to_datetime(df[feature]).dt.minute
+                                if self.extract_datetime in ['m','s']:
+                                    df['Minute'] = pd.to_datetime(df[feature]).dt.minute
 
-                                        if self.extract_datetime in ['s']:
-                                            df['Sec'] = pd.to_datetime(df[feature]).dt.second
+                                    if self.extract_datetime in ['s']:
+                                        df['Sec'] = pd.to_datetime(df[feature]).dt.second
                         
-                        logger.debug('Conversion to DATETIME succeeded for feature "{}"', feature)
+                    logger.debug('Conversion to DATETIME succeeded for feature "{}"', feature)
 
-                        try: 
-                            # check if entries for the extracted dates/times are non-NULL, otherwise drop
-                            if (df['Hour'] == 0).all() and (df['Minute'] == 0).all() and (df['Sec'] == 0).all():
-                                df.drop('Hour', inplace = True, axis =1 )
-                                df.drop('Minute', inplace = True, axis =1 )
-                                df.drop('Sec', inplace = True, axis =1 )
-                            elif (df['Day'] == 0).all() and (df['Month'] == 0).all() and (df['Year'] == 0).all():
-                                df.drop('Day', inplace = True, axis =1 )
-                                df.drop('Month', inplace = True, axis =1 )
-                                df.drop('Year', inplace = True, axis =1 )   
-                        except:
-                            pass          
+                    try:
+                        # check if entries for the extracted dates/times are non-NULL, otherwise drop
+                        if (df['Hour'] == 0).all() and (df['Minute'] == 0).all() and (df['Sec'] == 0).all():
+                            df.drop('Hour', inplace = True, axis =1 )
+                            df.drop('Minute', inplace = True, axis =1 )
+                            df.drop('Sec', inplace = True, axis =1 )
+                        elif (df['Day'] == 0).all() and (df['Month'] == 0).all() and (df['Year'] == 0).all():
+                            df.drop('Day', inplace = True, axis =1 )
+                            df.drop('Month', inplace = True, axis =1 )
+                            df.drop('Year', inplace = True, axis =1 )
                     except:
-                        # feature cannot be converted to datetime
-                        logger.warning('Conversion to DATETIME failed for "{}"', feature)
+                        pass
                 except:
-                    pass
+                    # feature cannot be converted to datetime
+                    logger.warning('Conversion to DATETIME failed for "{}"', feature)
+            except:
+                pass
             end = timer()
             logger.info('Completed conversion of DATETIME features in {} seconds', round(end-start, 4))
         return df

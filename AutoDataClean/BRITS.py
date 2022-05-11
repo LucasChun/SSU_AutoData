@@ -9,10 +9,12 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-
 import ujson as json
 import math
+import tqdm
 
+use_gpu = torch.cuda.is_available()
+device = torch.device("cuda") if use_gpu else torch.device("cpu")
 
 def parse_delta(masks, dir_):
     if dir_ == 'backward':
@@ -91,7 +93,7 @@ def makedata(df, feature):
     rec['backward'] = parse_rec(values[::-1], masks[::-1], evals[::-1], eval_masks[::-1], dir_='backward')
     rec = json.dumps(rec)
 
-    fs = open('./brits.json', 'w')
+    fs = open('./AutoDataClean/brits.json', 'w')
     fs.write(rec)
     fs.close()
     return length
@@ -357,16 +359,26 @@ class Rits_i(nn.Module):
         return ret
 
 
-def init(df, feature):
-    device = torch.device('cpu')
+def initBRITS(df, feature):
     length = len(df)
     makedata(df, feature)
     #(hidden_state_dim, impute_weight, label_weight, length, device)
     #여기서는 classification 없이 imputation만 하므로, impute weight를 1, label weight를 0으로 설정한다.
     model = Brits_i(108, 1, 0, length, device).to(device)
 
-    data_iter = get_loader('./brits.json', batch_size=64)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    data_iter = get_loader('./AutoDataClean/brits.json', batch_size=64)
+
+    epoch = 100
     model.train()
+    progress = tqdm.tqdm(range(epoch))
+    for i in progress:
+        tl = 0.0
+        for idx, data in enumerate(data_iter):
+            data = to_var(data, device)
+            ret = model.run_on_batch(data, optimizer, i)
+            tl += ret["loss"]
+        progress.set_description("loss: {:0.6f}".format(tl / len(data_iter)))
 
     model.eval()
 
@@ -380,4 +392,3 @@ def init(df, feature):
     result = scaler.inverse_transform(imputation[0])
 
     return result[:,0].round()
-
