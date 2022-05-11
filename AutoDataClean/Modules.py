@@ -270,11 +270,11 @@ class MissingValues:
         # function for predicting missing values with linear regression
         cols_num = df.select_dtypes(include=np.number).columns
         for feature in cols_num:
-            try:
-                df[feature] = initBRITS(pd.DataFrame(df[feature].values, index=df[time], columns=[feature]), feature)
+            #try:
+            df[feature] = initBRITS(pd.DataFrame(df[feature].values, index=df[time], columns=[feature]), feature)
                 #logger.debug('LINREG imputation of {} value(s) succeeded for feature "{}"', len(pred), feature)
-            except:
-                logger.warning('LINREG imputation failed for feature "{}"', feature)
+            #except:
+            #    logger.warning('LINREG imputation failed for feature "{}"', feature)
         return df
 
     def _naomi(self, df, time):
