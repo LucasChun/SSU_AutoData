@@ -39,6 +39,7 @@ class MissingValues:
                 logger.info('Started handling of NUMERICAL missing values... Method: "{}"', self.missing_num.upper())
                 self.time_series = Adjust.verify_ts(df)
                 MissingValueRate = df.isna().sum().sum() / df.size * 100
+                print(MissingValueRate, self.time_series)
                 # None Time Series
                 if self.time_series == False:
                     if self.missing_num in ['interp', 'brits', 'naomi']:
