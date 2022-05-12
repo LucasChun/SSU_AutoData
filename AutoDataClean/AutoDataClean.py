@@ -69,7 +69,6 @@ class AutoDataClean:
         self.output = self._clean_data(output_data, input_data)
 
         # log file
-        self.log = open(os.path.join(os.getcwd(), 'autoclean.log'), "rt")
         print('Logfile saved to:', os.path.join(os.getcwd(), 'autoclean.log'))
 
     def _initialize_logger(self, verbose, logfile):
