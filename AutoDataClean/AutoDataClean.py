@@ -45,7 +45,7 @@ class AutoDataClean:
         verbose (bool)..................define whether AutoDataClean logs will be printed in console
         
         OUTPUT (dataframe)..............a cleaned Pandas dataframe, accessible through the 'output_data' instance
-        '''    
+        '''
         self._initialize_logger(verbose, logfile)
         
         output_data = input_data.copy()
@@ -58,13 +58,18 @@ class AutoDataClean:
         self.outlier_param = outlier_param
         self.adjust_timecycle = adjust_timecycle
         self.time_series = time_series
-        
+
+        self.added_timecycle = []
+        self.added_outlier = []
+
         # validate the input parameters
         self._validate_params(output_data, verbose, logfile)
         
         # initialize our class and start the autoclean process
         self.output = self._clean_data(output_data, input_data)
 
+        # log file
+        self.log = open(os.path.join(os.getcwd(), 'autoclean.log'), "rt")
         print('Logfile saved to:', os.path.join(os.getcwd(), 'autoclean.log'))
 
     def _initialize_logger(self, verbose, logfile):

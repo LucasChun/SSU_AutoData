@@ -37,7 +37,6 @@ class MissingValues:
             
             if self.missing_num: # numeric data
                 logger.info('Started handling of NUMERICAL missing values... Method: "{}"', self.missing_num.upper())
-                self.time_series = Adjust.verify_ts(df)
                 MissingValueRate = df.isna().sum().sum() / df.size * 100
                 # None Time Series
                 if self.time_series == False:
@@ -384,26 +383,26 @@ class Outliers:
                 if row_val < lower_bound or row_val > upper_bound:
                     if row_val < lower_bound:
                         if (df[feature].fillna(-9999) % 1  == 0).all():
-                                print(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} => 바뀐값: {lower_bound}')
+                                self.added_outlier.append(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} / 바뀐값: {lower_bound}')
                                 #df.loc[row_index, feature] = lower_bound
                                 #df[feature] = df[feature].astype(int)
                                 df_tmp.loc[row_index,:] = lower_bound
                                 df_tmp = df_tmp.astype(int)
 
                         else:
-                            print(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} => 바뀐값: {lower_bound}')
+                            self.added_outlier.append(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} / 바뀐값: {lower_bound}')
                             #df.loc[row_index, feature] = lower_bound
                             df_tmp.loc[row_index,:] = lower_bound
                         counter += 1
                     else:
                         if (df[feature].fillna(-9999) % 1  == 0).all():
-                            print(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} => 바뀐값: {upper_bound}')
+                            self.added_outlier.append(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} / 바뀐값: {upper_bound}')
                             #df.loc[row_index, feature] = upper_bound
                             #df[feature] = df[feature].astype(int)
                             df_tmp.loc[row_index,:] = upper_bound
                             df_tmp = df_tmp.astype(int)
                         else:
-                            print(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} => 바뀐값: {upper_bound}')
+                            self.added_outlier.append(f'{feature}, {row_index} 원래값: {df.loc[row_index, feature]} / 바뀐값: {upper_bound}')
                             #df.loc[row_index, feature] = upper_bound
                             df_tmp.loc[row_index,:] = upper_bound
                         counter += 1
@@ -538,34 +537,36 @@ class Adjust:
             logger.info('Started adjustment of DATETIME features... Granularity: {}', self.adjust_timecycle)
             start = timer()
             list_tmp = []
+            self.time_series = Adjust.verify_ts(df)
+            feature = self.time_series
             # function for extracting of datetime values in the data
-            cols = set(df.columns) ^ set(df.select_dtypes(include=np.number).columns)
-            for feature in cols:
-                try:
-                    # convert features encoded as strings to type datetime ['D','M','Y','h','m','s']
-                    df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
-                    # convert datatime feature to fill missing datatime values
-                    df[feature] = df[feature].apply(Adjust._to_sec).interpolate(method="linear").apply(Adjust._to_dt)
-                    df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
-                    # find differences between rows
-                    df_diff = df[feature].diff().shift(-1)
+            try:
+                # convert features encoded as strings to type datetime ['D','M','Y','h','m','s']
+                df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
+                # convert datatime feature to fill missing datatime values
+                df[feature] = df[feature].apply(Adjust._to_sec).interpolate(method="linear").apply(Adjust._to_dt)
+                df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
+                # find differences between rows
+                df_diff = df[feature].diff().shift(-1)
 
-                    # select frequent diff
-                    tmp = df_diff.value_counts()
-                    frequent_diff = tmp.idxmax()
-                    #print(tmp)
-                    # generate new rows when the diff is over frequent diff
-                    for index, diff in zip(df_diff[df_diff > frequent_diff].keys(), df_diff[df_diff > frequent_diff]):
-                        for i in range(math.ceil(diff / frequent_diff) - 1):
-                            list_tmp.append(df[feature].loc[index, ] + frequent_diff * (i + 1))
-                    df_tmp = pd.DataFrame(list_tmp, columns=[feature])
+                # select frequent diff
+                tmp = df_diff.value_counts()
+                frequent_diff = tmp.idxmax()
+                # print(tmp)
+                # generate new rows when the diff is over frequent diff
+                for index, diff in zip(df_diff[df_diff > frequent_diff].keys(), df_diff[df_diff > frequent_diff]):
+                    for i in range(math.ceil(diff / frequent_diff) - 1):
+                        list_tmp.append(df[feature].loc[index,] + frequent_diff * (i + 1))
+                df_tmp = pd.DataFrame(list_tmp, columns=[feature])
+                self.added_timecycle = df_tmp
 
-                    # concatenate the dataframes and sort
-                    df = pd.concat([df, df_tmp]).sort_values(feature).reset_index(drop=True)
-                    end = timer()
-                    logger.info('Completed adjustment of DATETIME features in {} seconds', round(end - start, 4))
-                except:
-                    pass
+                # concatenate the dataframes and sort
+                df = pd.concat([df, df_tmp]).sort_values(feature).reset_index(drop=True)
+                end = timer()
+                logger.info('Completed adjustment of DATETIME features in {} seconds', round(end - start, 4))
+            except:
+                pass
+
         return df
 
     # convert datatime into sec in order to interpolate
@@ -584,12 +585,13 @@ class Adjust:
         for feature in cols:
             try:
                 # convert features encoded as strings to type datetime ['D','M','Y','h','m','s']
-                df[feature] = pd.to_datetime(df[feature], infer_datetime_format=True)
-                df_diff = df[feature].diff().shift(-1)
+                df_test = df.copy()
+                df_test[feature] = pd.to_datetime(df_test[feature], infer_datetime_format=True)
+                df_diff = df_test[feature].diff().shift(-1)
+                df_diff.dropna(inplace=True)
                 tmp = df_diff.value_counts()
                 frequent_diff = tmp.idxmax()
-                #print(tmp)
-                if (tmp.loc[frequent_diff] / sum(tmp.keys() / frequent_diff * tmp.values) >= 0.7) and (
+                if (tmp.loc[frequent_diff] / sum(tmp.keys() / frequent_diff * tmp.values) >= 0.5) and (
                         len([x for x in tmp.keys() > timedelta(seconds=0) if x == False]) == 0):
                     return feature
             except:
