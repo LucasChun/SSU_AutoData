@@ -93,7 +93,7 @@ def makedata(df, feature):
     rec['backward'] = parse_rec(values[::-1], masks[::-1], evals[::-1], eval_masks[::-1], dir_='backward')
     rec = json.dumps(rec)
 
-    fs = open('./AutoDataClean/brits.json', 'w')
+    fs = open('./brits.json', 'w')
     fs.write(rec)
     fs.close()
     return length
@@ -367,7 +367,7 @@ def initBRITS(df, feature):
     model = Brits_i(108, 1, 0, length, device).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=0.01)
-    data_iter = get_loader('./AutoDataClean/brits.json', batch_size=64)
+    data_iter = get_loader('./brits.json', batch_size=64)
 
     epoch = 100
     model.train()
