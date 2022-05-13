@@ -120,6 +120,9 @@ class MissingValues:
                         logger.debug('Deletion of {} NUMERIC missing value(s) succeeded', self.count_missing - df.isna().sum().sum())
 
                 logger.debug('"{}" of [TIME-SERIES:{}] {} NUMERIC missing value(s) succeeded', self.missing_num.upper(), bool(self.time_series) ,self.count_missing - df.isna().sum().sum())
+                if self.count_missing == self.count_missing - df.isna().sum().sum():
+                    self.missing_num = 'NO USE'
+                categ_missing = self.count_missing - df.isna().sum().sum()
 
             if self.missing_categ: # categorical data
                 logger.info('Started handling of CATEGORICAL missing values... Method: "{}"', self.missing_categ.upper())
@@ -140,9 +143,13 @@ class MissingValues:
                     df = MissingValues._delete(self, df, type='categ')
                     logger.debug('Deletion of {} CATEGORICAL missing value(s) succeeded', self.count_missing-df.isna().sum().sum())
                 logger.debug('"{}" of {} CATEGORICAL missing value(s) succeeded', self.missing_categ.upper(),
-                             self.count_missing - df.isna().sum().sum())
+                             categ_missing - df.isna().sum().sum())
+                if categ_missing == categ_missing - df.isna().sum().sum():
+                    self.missing_categ = 'NO USE'
         else:
             logger.debug('{} missing values found', self.count_missing)
+            self.missing_num = 'NO USE'
+            self.missing_categ = 'NO USE'
         end = timer()
         logger.info('Completed handling of missing values in {} seconds', round(end-start, 6))
         return df
