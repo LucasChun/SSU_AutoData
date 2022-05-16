@@ -549,7 +549,7 @@ class Adjust:
             self.categ_features = [x for x in df.columns if x not in self.num_features]
             if self.time_series in self.categ_features:
                 try:
-                    del.self.categ_features[self.time_series]
+                    del self.categ_features[self.time_series]
                 except:
                     pass
             feature = self.time_series
