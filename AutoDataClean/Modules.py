@@ -546,12 +546,7 @@ class Adjust:
             list_tmp = []
             self.time_series = Adjust.verify_ts(df)
             self.num_features = df.select_dtypes(include=np.number).columns 
-            self.categ_features = [x for x in df.columns if x not in self.num_features]
-            if self.time_series in self.categ_features:
-                try:
-                    del self.categ_features[self.time_series]
-                except:
-                    pass
+            self.categ_features = [x for x in df.columns if x not in (self.num_features + list(self.time_series))]
             feature = self.time_series
             # function for extracting of datetime values in the data
             try:
