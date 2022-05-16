@@ -61,8 +61,8 @@ class AutoDataClean:
         self.outlier_param = outlier_param
         self.adjust_timecycle = adjust_timecycle
         self.time_series = False
-        self.num_feature = []
-        self.categ_feature = []
+        self.num_features = []
+        self.categ_features = []
 
         self.added_timecycle = []
         self.added_outlier = []
