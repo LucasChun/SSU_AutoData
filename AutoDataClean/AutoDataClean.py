@@ -6,14 +6,17 @@ from AutoDataClean.Modules import *
 
 class AutoDataClean:
 
-    def __init__(self, input_data, missing_num='auto', missing_categ='auto', encode_categ=['auto'], extract_datetime='s', outliers='winz', outlier_param=1.5, logfile=True, verbose=False, adjust_timecycle=True, time_series=False):
+    def __init__(self, input_data, missing_num='auto', missing_categ='auto', encode_categ=['auto'], extract_datetime='s', outliers='winz', outlier_param=1.5, logfile=True, verbose=False, adjust_timecycle=True):
         '''
         input_data (dataframe)..........Pandas dataframe
         missing_num (str)...............define how NUMERICAL missing values are handled
                                         'auto' = automated handling
-                                        'linreg' = uses Linear Regression for predicting missing values
-                                        'knn' = uses K-NN algorithm for imputation
+                                        'linreg+knn' = uses Linear Regression and K-NN algorithm for predicting missing values
+                                        'svr+knn' = uses Support Vector Regerssion and K-NN algorithm for predicting missing values
                                         'mean','median' or 'most_frequent' = uses mean/median/mode imputatiom
+                                        'interp' = uses Intetpolation method for imputing missing values
+                                        'naomi' = uses NAOMI imputation
+                                        'brits' = uses BRITS impuation
                                         'delete' = deletes observations with missing values
                                         'False' = skips this step
         missing_categ (str).............define how CATEGORICAL missing values are handled
@@ -57,7 +60,7 @@ class AutoDataClean:
         self.extract_datetime = extract_datetime
         self.outlier_param = outlier_param
         self.adjust_timecycle = adjust_timecycle
-        self.time_series = time_series
+        self.time_series = False
 
         self.added_timecycle = []
         self.added_outlier = []
