@@ -14,7 +14,8 @@ import math
 import tqdm
 
 use_gpu = torch.cuda.is_available()
-device = torch.device("cuda") if use_gpu else torch.device("cpu")
+device = torch.device("cuda") if use_gpu else torch.device("cpu")\
+print(f"Using GPU: {use_gpu}")
 
 def parse_delta(masks, dir_):
     if dir_ == 'backward':
