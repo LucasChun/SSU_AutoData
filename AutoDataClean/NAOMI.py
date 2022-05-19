@@ -11,7 +11,6 @@ from tqdm import trange
 
 use_gpu = torch.cuda.is_available()
 device = torch.device("cuda") if use_gpu else torch.device("cpu")
-print(f"Using GPU: {use_gpu}")
 
 def makeBatch(df, feature, window_size):
     min_max_scaler = StandardScaler()  # MinMaxScaler()
@@ -266,7 +265,8 @@ def run_epoch(train, model, exp_data, clip, optimizer=None, batch_size=64, num_m
 
 
 def initNAOMI(df, feature):
-
+    
+    print(f"Using GPU: {use_gpu}")
     window_size = 10
     _, data, scaler, data_batch = makeBatch(df, feature, window_size)
     model = None
