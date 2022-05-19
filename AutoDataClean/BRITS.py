@@ -385,7 +385,7 @@ def initBRITS(df, feature):
     for idx, data in enumerate(data_iter):
         data = to_var(data, device)
         ret = model.run_on_batch(data, None)
-        imputation = ret['imputations'].data.cpu().numpy()
+        imputation = ret['imputations'].data.numpy()
 
     scaler = StandardScaler()
     scaler = scaler.fit(df[feature].to_numpy().reshape(-1,1))
