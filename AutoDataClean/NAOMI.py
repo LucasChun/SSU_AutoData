@@ -11,6 +11,7 @@ from tqdm import trange
 
 use_gpu = torch.cuda.is_available()
 device = torch.device("cuda") if use_gpu else torch.device("cpu")
+print(f"Using GPU: {use_gpu}")
 
 def makeBatch(df, feature, window_size):
     min_max_scaler = StandardScaler()  # MinMaxScaler()
