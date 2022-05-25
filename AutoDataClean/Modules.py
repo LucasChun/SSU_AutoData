@@ -93,15 +93,19 @@ class MissingValues:
                         raise ValueError('Invalid value for "missing_num" parameter for TIME SERIES type.')
                     # Automatic imputation
                     if self.missing_num == 'auto':
-                        if MissingValueRate < 10:
-                            self.missing_num = 'interp_model'
-                            df = MissingValues._interpolate(self, df, self.time_series)
-                        elif 10 <= MissingValueRate < 20:
-                            self.missing_num = 'brits_model'
-                            df = MissingValues._brits(self, df, self.time_series)
-                        elif MissingValueRate >= 20:
-                            self.missing_num = 'naomi_model'
-                            df = MissingValues._naomi(self, df, self.time_series)
+                        if len(df) < 1000:
+                            if MissingValueRate < 10:
+                                self.missing_num = 'interp_model'
+                                df = MissingValues._interpolate(self, df, self.time_series)
+                            elif 10 <= MissingValueRate < 20:
+                                self.missing_num = 'brits_model'
+                                df = MissingValues._brits(self, df, self.time_series)
+                            elif MissingValueRate >= 20:
+                                self.missing_num = 'naomi_model'
+                                df = MissingValues._naomi(self, df, self.time_series)
+                        else:
+                                self.missing_num = 'interp_model'
+                                df = MissingValues._interpolate(self, df, self.time_series)
                     # Interpolate
                     elif self.missing_num == 'interp':
                         self.missing_num = 'interp_model'
