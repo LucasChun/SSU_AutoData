@@ -93,7 +93,7 @@ class MissingValues:
                         raise ValueError('Invalid value for "missing_num" parameter for TIME SERIES type.')
                     # Automatic imputation
                     if self.missing_num == 'auto':
-                        if len(df) < 1000:
+                        if len(df) < 500:
                             if MissingValueRate < 10:
                                 self.missing_num = 'interp_model'
                                 df = MissingValues._interpolate(self, df, self.time_series)
