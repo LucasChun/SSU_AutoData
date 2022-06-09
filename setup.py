@@ -11,7 +11,7 @@ setup(
     packages=['AutoDataClean'],
     zip_safe=False,
     install_requires=[
-        'loguru',
+        'loguru==0.6.0',
         'ujson',
         'torch',
         'numpy',
