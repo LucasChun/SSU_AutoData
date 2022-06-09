@@ -571,7 +571,7 @@ class Adjust:
                     for i in range(math.ceil(diff / frequent_diff) - 1):
                         list_tmp.append(df[feature].loc[index,] + frequent_diff * (i + 1))
                 df_tmp = pd.DataFrame(list_tmp, columns=[feature])
-                self.added_timecycle = df_tmp
+                self.added_timecycle = list_tmp
 
                 # concatenate the dataframes and sort
                 df = pd.concat([df, df_tmp]).sort_values(feature).reset_index(drop=True)
